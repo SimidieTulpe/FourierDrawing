@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:skia="clr-namespace:SkiaSharp.Views.Forms;assembly=SkiaSharp.Views.Forms"
+             xmlns:tt="clr-namespace:TouchTracking"
+             x:Class="FourierDrawing.MainPage"
+             x:Name="Me">
+    <ContentPage.BindingContext>
+        <x:Reference Name="Me"/>
+    </ContentPage.BindingContext>
+    <StackLayout BackgroundColor="LightGray">
+        <Frame BackgroundColor="#2196F3"
+               CornerRadius="0">
+            <Label Text="Fourier Drawing"
+                   HorizontalTextAlignment="Center"
+                   TextColor="White"
+                   FontSize="36"/>
+        </Frame>
+        <skia:SKCanvasView x:Name="canvasView"
+                           PaintSurface="OnCanvasViewPaintSurface"
+                           HorizontalOptions="FillAndExpand"
+                           VerticalOptions="FillAndExpand"/>
+        <StackLayout.Effects>
+            <tt:TouchEffect Capture="True"
+                            TouchAction="OnTouchEffectAction" />
+        </StackLayout.Effects>
+
+
+        <!--<Label Text="Number of branches" HorizontalOptions="Center" FontSize="18"/>
+        <Slider Minimum="0" Maximum="10" Value="{Binding NumberOfBranches}" Margin="20,0,20,0"/>
+        <Label Text="Random factor" HorizontalOptions="Center" FontSize="18"/>
+        <Slider Minimum="0" Maximum="10" Value="{Binding RandomFactor}" Margin="20,0,20,0"/>
+        <Label Text="Wind force" HorizontalOptions="Center" FontSize="18"/>
+        <Slider Minimum="0" Maximum="10" Value="{Binding WindForce}" Margin="20,0,20,20"/>-->
+    </StackLayout>
+</ContentPage>
