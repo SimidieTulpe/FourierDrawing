@@ -8,29 +8,31 @@
     <ContentPage.BindingContext>
         <x:Reference Name="Me"/>
     </ContentPage.BindingContext>
-    <StackLayout BackgroundColor="LightGray">
-        <Frame BackgroundColor="#2196F3"
-               CornerRadius="0">
-            <Label Text="Fourier Drawing"
-                   HorizontalTextAlignment="Center"
-                   TextColor="White"
-                   FontSize="36"/>
-        </Frame>
-        <skia:SKCanvasView x:Name="canvasView"
-                           PaintSurface="OnCanvasViewPaintSurface"
-                           HorizontalOptions="FillAndExpand"
-                           VerticalOptions="FillAndExpand"/>
-        <StackLayout.Effects>
-            <tt:TouchEffect Capture="True"
-                            TouchAction="OnTouchEffectAction" />
-        </StackLayout.Effects>
+    <StackLayout BackgroundColor="Gray">
+        <Label Text="Fourier Drawing"
+               HorizontalTextAlignment="Center"
+               TextColor="White"
+               FontSize="36"/>
 
-
-        <!--<Label Text="Number of branches" HorizontalOptions="Center" FontSize="18"/>
-        <Slider Minimum="0" Maximum="10" Value="{Binding NumberOfBranches}" Margin="20,0,20,0"/>
-        <Label Text="Random factor" HorizontalOptions="Center" FontSize="18"/>
-        <Slider Minimum="0" Maximum="10" Value="{Binding RandomFactor}" Margin="20,0,20,0"/>
-        <Label Text="Wind force" HorizontalOptions="Center" FontSize="18"/>
-        <Slider Minimum="0" Maximum="10" Value="{Binding WindForce}" Margin="20,0,20,20"/>-->
+        <ContentView VerticalOptions="FillAndExpand">
+            <skia:SKCanvasView x:Name="canvasView"
+                               PaintSurface="OnCanvasViewPaintSurface"
+                               BackgroundColor="Black"/>
+            
+            <ContentView.Effects>
+                <tt:TouchEffect Capture="True"
+                                TouchAction="OnTouchEffectAction" />
+            </ContentView.Effects>
+        </ContentView>
+        
+        <Label Text="Number of Frequencies"
+               HorizontalTextAlignment="Center"
+               FontSize="18"/>
+        <Slider Minimum="0"
+                Maximum="10"
+                Value="{Binding NumberOfFrequencies}"
+                Margin="20,0,20,20"/>
+        <Button Text="Clear Canvas"
+                Clicked="Button_Clicked"/>
     </StackLayout>
 </ContentPage>

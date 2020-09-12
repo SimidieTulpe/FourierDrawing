@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FourierDrawing.Android", "FourierDrawing\FourierDrawing.Android\FourierDrawing.Android.csproj", "{2F4A14F9-8F5D-476E-B12A-C938EC43A85C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FourierDrawing", "FourierDrawing\FourierDrawing\FourierDrawing.csproj", "{74591805-4F99-4D1F-89E0-B69F7E96515F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FourierDrawing", "FourierDrawing\FourierDrawing\FourierDrawing.csproj", "{74591805-4F99-4D1F-89E0-B69F7E96515F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
