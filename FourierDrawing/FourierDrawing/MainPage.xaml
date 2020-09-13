@@ -24,12 +24,16 @@
                                 TouchAction="OnTouchEffectAction" />
             </ContentView.Effects>
         </ContentView>
-        
+
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Center">
         <Label Text="Number of Frequencies"
-               HorizontalTextAlignment="Center"
                FontSize="18"/>
+        <Label Text="{Binding NumberOfFrequencies}"
+               FontSize="18"/>
+        </StackLayout>
         <Slider Minimum="0"
-                Maximum="10"
+                x:Name="slider"
                 Value="{Binding NumberOfFrequencies}"
                 Margin="20,0,20,20"/>
         <Button Text="Clear Canvas"

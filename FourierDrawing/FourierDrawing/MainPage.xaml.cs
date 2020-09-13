@@ -1,104 +1,87 @@
-﻿using SkiaSharp;
+﻿using MathNet.Numerics.IntegralTransforms;
+using SkiaSharp;
 using SkiaSharp.Views.Forms;
-using System.Collections.Generic;
-using Xamarin.Forms;
-using TouchTracking;
-using System.Numerics;
-using MathNet.Numerics.IntegralTransforms;
-using System.Threading.Tasks;
-using System.Diagnostics;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
+using TouchTracking;
+using Xamarin.Forms;
 
 namespace FourierDrawing
 {
     public partial class MainPage : ContentPage
     {
+        private const double animationFrequency = 20; // [s]
+        private const double rotationFrequency = 0.05; // [s]
+        private const int numberOfPoints = 50;
+
         private readonly Dictionary<long, SKPath> inProgressPaths = new Dictionary<long, SKPath>();
         private readonly List<SKPath> completedPaths = new List<SKPath>();
-        private SKPath animatedPath = new SKPath();
-        private SKPath fixPath = new SKPath();
-        private readonly SKPaint paint = new SKPaint
+        private readonly Queue<(double, double)> fixPath = new Queue<(double, double)>();
+        private readonly SKPath path = new SKPath();
+        private readonly SKPath animatedPath = new SKPath();
+        private readonly SKPaint fixPathPaint = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            Color = SKColors.Blue.WithAlpha(0x80),
+            StrokeWidth = 5,
+            StrokeCap = SKStrokeCap.Round,
+            StrokeJoin = SKStrokeJoin.Round
+        };
+        private readonly SKPaint animatedPathPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             Color = SKColors.Blue,
-            StrokeWidth = 10,
+            StrokeWidth = 8,
             StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round
+            StrokeJoin = SKStrokeJoin.Round,
+
         };
-        private readonly SKPaint paint1 = new SKPaint
+        private readonly SKPaint jointPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             Color = SKColors.Red,
-            StrokeWidth = 10,
+            StrokeWidth = 3,
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
-        private int numberOfFrequencies;
+        private readonly SKPaint circlePaint = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            Color = SKColors.Gray.WithAlpha(0x80),
+            StrokeWidth = 2,
+            StrokeCap = SKStrokeCap.Round,
+            StrokeJoin = SKStrokeJoin.Round
+        };
+        private readonly Stopwatch stopwatch = new Stopwatch();
+        private readonly Complex[] complexArray = new Complex[numberOfPoints];
 
-        Stopwatch stopwatch = new Stopwatch();
-        bool pageIsActive;
+        private SKPoint position;
+        private bool pageIsActive;
         private bool isUpdating;
-
-        private const double animationFrequency = 20; // [s]
-        private const double rotationFrequency = 0.1; // [s]
         private double currentAngle = 0; // ranges from 0 to 2 * Pi
-        const int numberOfPoints = 100;
 
-        
-        private readonly double[] x = new double[numberOfPoints];
-        //private readonly double[] x = new double[] { 100, 50, 0, 50};
-        //private readonly double[] x = new double[] { 0, 10, 20, 30, 40, 50, 60, 50, 40, 30, 20, 10 };
-        private readonly double[] y = new double[numberOfPoints];
-        //private readonly double[] y = new double[] { 0, 50, 0, -50};
-        //private readonly double[] y = new double[] { 0, 10, 15, 10, -10, -20, -10, 10, 20, 10, 10, 5 };
-
-        Complex[] complexPath;
+        private int _numberOfFrequencies;
 
         public MainPage()
         {
             InitializeComponent();
-
-            for (int i = 0; i < numberOfPoints; i++)
-            {
-                var t = i * Math.PI * 2 / numberOfPoints;
-                x[i] = 100 * Math.Cos(t*1) + 20 * Math.Cos(t * 10);
-                y[i] = 100 * Math.Sin(t*1);
-            }
-
-            for (int i = 0; i < x.Length; i++)
-            {
-                x[i] = x[i] + 500;
-            }
-            for (int i = 0; i < y.Length; i++)
-            {
-                y[i] = y[i] + 500;
-            }
-
-            complexPath = new Complex[x.Length];
-
-
-            for (int i = 0; i < x.Length; i++)
-            {
-                complexPath[i] = new Complex(x[i], y[i]);
-            }
-
-            
-
-            
-
-
-            Fourier.Forward(complexPath, FourierOptions.NoScaling);
+            slider.Maximum = numberOfPoints;
+            NumberOfFrequencies = numberOfPoints;
         }
 
         public int NumberOfFrequencies
         {
-            get => numberOfFrequencies;
+            get => _numberOfFrequencies;
             set
             {
-                if (value == numberOfFrequencies) return;
-                numberOfFrequencies = value;
+                if (value == _numberOfFrequencies) return;
+                _numberOfFrequencies = value;
                 OnPropertyChanged(nameof(NumberOfFrequencies));
-                canvasView.InvalidateSurface();
+                canvasView?.InvalidateSurface();
             }
         }
 
@@ -129,9 +112,13 @@ namespace FourierDrawing
                 case TouchActionType.Released:
                     if (inProgressPaths.ContainsKey(args.Id))
                     {
+                        completedPaths.Clear();
+                        inProgressPaths[args.Id].Close();
                         completedPaths.Add(inProgressPaths[args.Id]);
                         inProgressPaths.Remove(args.Id);
+                        fixPath.Clear();
                         canvasView.InvalidateSurface();
+                        CreateFourierSerie();
                     }
                     break;
 
@@ -145,6 +132,19 @@ namespace FourierDrawing
             }
         }
 
+        void CreateFourierSerie()
+        {
+            SKPathMeasure pathMeasure = new SKPathMeasure(completedPaths.First(), true, 1);
+            for (int i = 0; i < numberOfPoints; i++)
+            {
+                pathMeasure.GetPosition(pathMeasure.Length / numberOfPoints * i, out position);
+                complexArray[i] = new Complex(position.X, position.Y);
+            }
+            //fixPath.MoveTo((float)x[0], (float)y[0]);
+
+            Fourier.Forward(complexArray, FourierOptions.NoScaling);
+        }
+
         SKPoint ConvertToPixel(Point pt)
         {
             return new SKPoint((float)(canvasView.CanvasSize.Width * pt.X / canvasView.Width),
@@ -153,8 +153,6 @@ namespace FourierDrawing
 
         private void OnCanvasViewPaintSurface(object sender, SKPaintSurfaceEventArgs args)
         {
-            var xCenter = args.Info.Width / 2f;
-            var yCenter = args.Info.Height / 2f;
             if (isUpdating == true) return;
             isUpdating = true;
 
@@ -163,41 +161,66 @@ namespace FourierDrawing
 
             foreach (var path in completedPaths)
             {
-                canvas.DrawPath(path, paint);
+                canvas.DrawPath(path, fixPathPaint);
             }
 
             foreach (var path in inProgressPaths.Values)
             {
-                canvas.DrawPath(path, paint);
+                canvas.DrawPath(path, fixPathPaint);
             }
-
-            fixPath.MoveTo((float)x[0], (float)y[0]);
-            for (int i = 1; i < x.Length; i++)
-            {
-                fixPath.LineTo((float)x[i], (float)y[i]);
-            }
-            canvas.DrawPath(fixPath, paint);
 
             animatedPath.Reset();
-            var x0 = complexPath[0].Magnitude / complexPath.Length * Math.Cos(complexPath[0].Phase);
-            var y0 = complexPath[0].Magnitude / complexPath.Length * Math.Sin(complexPath[0].Phase);
-            animatedPath.MoveTo((float)x0, (float)y0);
 
-            for (int i = 1; i < complexPath.Length; i++)
+            if (completedPaths.Any())
             {
-                int frequency = i;
-                if (i > complexPath.Length / 2)
+
+                var x0 = complexArray[0].Magnitude / complexArray.Length * Math.Cos(complexArray[0].Phase);
+                var y0 = complexArray[0].Magnitude / complexArray.Length * Math.Sin(complexArray[0].Phase);
+                animatedPath.MoveTo((float)x0, (float)y0);
+
+                var frequencies = new int[numberOfPoints];
+                for (int i = 1; i < complexArray.Length; i++)
                 {
-                    frequency = - (complexPath.Length - i);
+                    if (i > complexArray.Length / 2) frequencies[i] = -(complexArray.Length - i);
+                    else frequencies[i] = i;
                 }
 
-                var xi = x0 + complexPath[i].Magnitude / complexPath.Length * Math.Cos(frequency * currentAngle + complexPath[i].Phase);
-                var yi = y0 + complexPath[i].Magnitude / complexPath.Length * Math.Sin(frequency * currentAngle + complexPath[i].Phase);
-                animatedPath.LineTo((float)xi, (float)yi);
-                x0 = xi;
-                y0 = yi;
+                var idxs = complexArray
+                    .Select((x, i) => new KeyValuePair<Complex, int>(x, i)).Where(i => i.Value > 0)
+                    .OrderByDescending(x => x.Key.Magnitude)
+                    .Select(x => x.Value)
+                    .Take(NumberOfFrequencies);
+
+                foreach (var idx in idxs)
+                {
+                    if (idx > complexArray.Length / 2) frequencies[idx] = -(complexArray.Length - idx);
+
+                    var xi = x0 + complexArray[idx].Magnitude / complexArray.Length * Math.Cos(frequencies[idx] * currentAngle + complexArray[idx].Phase);
+                    var yi = y0 + complexArray[idx].Magnitude / complexArray.Length * Math.Sin(frequencies[idx] * currentAngle + complexArray[idx].Phase);
+                    animatedPath.LineTo((float)xi, (float)yi);
+
+                    canvas.DrawCircle((float)x0, (float)y0, (float)(complexArray[idx].Magnitude / complexArray.Length), circlePaint);
+
+                    x0 = xi;
+                    y0 = yi;
+                }
+
+                path.Reset();
+                fixPath.Enqueue((x0, y0));
+                if (fixPath.Count > animationFrequency / rotationFrequency * 0.7) fixPath.Dequeue();
+                if (fixPath.Count > 2)
+                {
+                    path.MoveTo((float)fixPath.Peek().Item1, (float)fixPath.Peek().Item2);
+                    foreach (var item in fixPath)
+                    {
+                        path.LineTo((float)item.Item1, (float)item.Item2);
+                    }
+                }
+
+                canvas.DrawPath(path, animatedPathPaint);
+                canvas.DrawPath(animatedPath, jointPaint);
+
             }
-            canvas.DrawPath(animatedPath, paint1);
 
             isUpdating = false;
         }
@@ -221,6 +244,7 @@ namespace FourierDrawing
         {
             completedPaths.Clear();
             inProgressPaths.Clear();
+            fixPath.Clear();
             canvasView.InvalidateSurface();
         }
         protected override void OnAppearing()
