@@ -8,11 +8,11 @@
     <ContentPage.BindingContext>
         <x:Reference Name="Me"/>
     </ContentPage.BindingContext>
-    <StackLayout BackgroundColor="Gray">
+    <StackLayout BackgroundColor="DarkSlateGray">
         <Label Text="Fourier Drawing"
                HorizontalTextAlignment="Center"
                TextColor="White"
-               FontSize="36"/>
+               FontSize="34"/>
 
         <ContentView VerticalOptions="FillAndExpand">
             <skia:SKCanvasView x:Name="canvasView"
@@ -26,17 +26,38 @@
         </ContentView>
 
         <StackLayout Orientation="Horizontal"
-                     HorizontalOptions="Center">
+                     HorizontalOptions="CenterAndExpand">
         <Label Text="Number of Frequencies"
+               VerticalOptions="Center"
+               TextColor="White"
                FontSize="18"/>
-        <Label Text="{Binding NumberOfFrequencies}"
-               FontSize="18"/>
+        <Entry Text="{Binding StringNumberOfFrequencies}"
+               FontSize="18"
+               TextColor="White"
+               VerticalOptions="Center"
+               Keyboard="Numeric"
+               Unfocused="Entry_Unfocused"/>
         </StackLayout>
         <Slider Minimum="0"
                 x:Name="slider"
-                Value="{Binding NumberOfFrequencies}"
-                Margin="20,0,20,20"/>
+                Value="{Binding IntNumberOfFrequencies}"
+                Margin="0,0,0,0"/>
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Fill">
         <Button Text="Clear Canvas"
+                HorizontalOptions="FillAndExpand"
                 Clicked="Button_Clicked"/>
+            <StackLayout Orientation="Horizontal"
+                         HorizontalOptions="FillAndExpand">
+            <Label Text="Follow Tip"
+                   FontSize="18"
+               TextColor="White"
+                   VerticalOptions="Center"
+                   HorizontalOptions="EndAndExpand"/>
+            <CheckBox VerticalOptions="Center"
+                      IsChecked="{Binding FollowTip}"
+                      HorizontalOptions="StartAndExpand"/>
+            </StackLayout>
+        </StackLayout>
     </StackLayout>
 </ContentPage>
