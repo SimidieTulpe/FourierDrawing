@@ -1,8 +1,7 @@
 ﻿using System;
 using SkiaSharp;
-using TouchTracking;
 
-namespace SkiaSharpFormsDemos
+namespace FourierDrawing.TouchAction
 {
     public class TouchPoint
     {

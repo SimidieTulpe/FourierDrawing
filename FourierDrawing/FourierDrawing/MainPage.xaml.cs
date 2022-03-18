@@ -7,41 +7,40 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
-using TouchTracking;
+using FourierDrawing.TouchAction;
 using Xamarin.Forms;
 
 namespace FourierDrawing
 {
-    public partial class MainPage : ContentPage
+    public partial class MainPage
     {
-        private const double animationFrequency = 25; // [s]
-        private const double rotationFrequency = 0.05; // [s]
-        private const int numberOfPoints = 100;
-        private const float scaleFactor = 2f;
+        private const double AnimationFrequency = 25; // [Hz]
+        private const double RotationFrequency = 0.05; // [Hz]
+        private const int NumberOfPoints = 100;
+        private const float ScaleFactor = 2f;
 
-        private readonly Dictionary<long, SKPath> inProgressPaths = new Dictionary<long, SKPath>();
-        private readonly List<SKPath> completedPaths = new List<SKPath>();
-        private readonly Queue<(double, double)> fixPath = new Queue<(double, double)>();
-        private readonly SKPath path = new SKPath();
-        private readonly SKPath animatedPath = new SKPath();
-        private readonly SKPaint fixPathPaint = new SKPaint
+        private readonly Dictionary<long, SKPath> _inProgressPaths = new Dictionary<long, SKPath>();
+        private readonly List<SKPath> _completedPaths = new List<SKPath>();
+        private readonly Queue<(double, double)> _fixPath = new Queue<(double, double)>();
+        private readonly SKPath _path = new SKPath();
+        private readonly SKPath _animatedPath = new SKPath();
+        private readonly SKPaint _fixPathPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
-            Color = SKColors.Blue.WithAlpha(0x60),
+            Color = SKColors.CornflowerBlue.WithAlpha(0x60),
             StrokeWidth = 5,
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
-        private readonly SKPaint animatedPathPaint = new SKPaint
+        private readonly SKPaint _animatedPathPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             Color = SKColors.Blue,
-            StrokeWidth = 6,
+            StrokeWidth = 8,
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round,
-
         };
-        private readonly SKPaint jointPaint = new SKPaint
+        private readonly SKPaint _jointPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             Color = SKColors.Red,
@@ -49,23 +48,23 @@ namespace FourierDrawing
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
-        private readonly SKPaint circlePaint = new SKPaint
+        private readonly SKPaint _circlePaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             Color = SKColors.Gray.WithAlpha(0x40),
-            StrokeWidth = 2,
+            StrokeWidth = 3,
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
-        private readonly Stopwatch stopwatch = new Stopwatch();
-        private readonly Complex[] complexArray = new Complex[numberOfPoints];
+        private readonly Stopwatch _stopwatch = new Stopwatch();
+        private readonly Complex[] _complexArray = new Complex[NumberOfPoints];
 
-        private SKPoint position;
-        private bool pageIsActive;
-        private bool isUpdating;
-        private double currentAngle = 0; // ranges from 0 to 2 * Pi
-        private float tipPositionX = 0;
-        private float tipPositionY = 0;
+        private SKPoint _position;
+        private bool _pageIsActive;
+        private bool _isUpdating;
+        private double _currentAngle; // ranges from 0 to 2 * Pi
+        private float _tipPositionX;
+        private float _tipPositionY;
 
         private string _stringNumberOfFrequencies;
         private int _intNumberOfFrequencies;
@@ -75,8 +74,8 @@ namespace FourierDrawing
         {
             InitializeComponent();
             slider.Minimum = 0;
-            slider.Maximum = numberOfPoints;
-            IntNumberOfFrequencies = numberOfPoints;
+            slider.Maximum = NumberOfPoints;
+            IntNumberOfFrequencies = NumberOfPoints;
         }
 
         public string StringNumberOfFrequencies
@@ -86,7 +85,7 @@ namespace FourierDrawing
             {
                 _stringNumberOfFrequencies = value;
                 OnPropertyChanged(nameof(StringNumberOfFrequencies));
-                if (!int.TryParse(value, out int result) || result > numberOfPoints || result < 0)
+                if (!int.TryParse(value, out int result) || result > NumberOfPoints || result < 0)
                 {
                     return;
                 };
@@ -94,6 +93,7 @@ namespace FourierDrawing
                 OnPropertyChanged(nameof(IntNumberOfFrequencies));
             }
         }
+
         public int IntNumberOfFrequencies
         {
             get => _intNumberOfFrequencies;
@@ -116,66 +116,62 @@ namespace FourierDrawing
             }
         }
 
-        void OnTouchEffectAction(object sender, TouchActionEventArgs args)
+        private void OnTouchEffectAction(object sender, TouchActionEventArgs args)
         {
             switch (args.Type)
             {
                 case TouchActionType.Pressed:
-                    if (inProgressPaths.Count != 0) return;
-                    if (!inProgressPaths.ContainsKey(args.Id))
+                    if (_inProgressPaths.Count != 0) return;
+                    if (!_inProgressPaths.ContainsKey(args.Id))
                     {
-                        SKPath path = new SKPath();
+                        var path = new SKPath();
                         path.MoveTo(ConvertToPixel(args.Location));
-                        inProgressPaths.Add(args.Id, path);
-                        //canvasView.InvalidateSurface();
+                        _inProgressPaths.Add(args.Id, path);
                     }
                     break;
 
                 case TouchActionType.Moved:
-                    if (inProgressPaths.ContainsKey(args.Id))
+                    if (_inProgressPaths.ContainsKey(args.Id))
                     {
-                        SKPath path = inProgressPaths[args.Id];
+                        var path = _inProgressPaths[args.Id];
                         path.LineTo(ConvertToPixel(args.Location));
-                        //canvasView.InvalidateSurface();
                     }
                     break;
 
                 case TouchActionType.Released:
-                    if (inProgressPaths.ContainsKey(args.Id))
+                    if (_inProgressPaths.ContainsKey(args.Id))
                     {
-                        completedPaths.Clear();
-                        inProgressPaths[args.Id].Close();
-                        completedPaths.Add(inProgressPaths[args.Id]);
-                        inProgressPaths.Remove(args.Id);
-                        fixPath.Clear();
-                        //canvasView.InvalidateSurface();
+                        _completedPaths.Clear();
+                        _inProgressPaths[args.Id].Close();
+                        _completedPaths.Add(_inProgressPaths[args.Id]);
+                        _inProgressPaths.Remove(args.Id);
+                        _fixPath.Clear();
                         CreateFourierSerie();
                     }
                     break;
 
                 case TouchActionType.Cancelled:
-                    if (inProgressPaths.ContainsKey(args.Id))
+                    if (_inProgressPaths.ContainsKey(args.Id))
                     {
-                        inProgressPaths.Remove(args.Id);
-                        //canvasView.InvalidateSurface();
+                        _inProgressPaths.Remove(args.Id);
                     }
                     break;
             }
         }
 
-        void CreateFourierSerie()
+        private void CreateFourierSerie()
         {
-            SKPathMeasure pathMeasure = new SKPathMeasure(completedPaths.First(), true, 1);
-            for (int i = 0; i < numberOfPoints; i++)
+            var pathMeasure = new SKPathMeasure(_completedPaths.First(), true, 1);
+            for (var i = 0; i < NumberOfPoints; i++)
             {
-                pathMeasure.GetPosition(pathMeasure.Length / numberOfPoints * i, out position);
-                complexArray[i] = new Complex(position.X, position.Y);
+                pathMeasure.GetPosition(pathMeasure.Length / NumberOfPoints * i, out _position);
+                _complexArray[i] = new Complex(_position.X, _position.Y);
             }
 
-            Fourier.Forward(complexArray, FourierOptions.NoScaling);
+            Fourier.Forward(_complexArray, FourierOptions.NoScaling);
         }
 
-        SKPoint ConvertToPixel(Point pt)
+        private SKPoint ConvertToPixel(Point pt)
         {
             return new SKPoint((float)(canvasView.CanvasSize.Width * pt.X / canvasView.Width),
                                (float)(canvasView.CanvasSize.Height * pt.Y / canvasView.Height));
@@ -183,37 +179,37 @@ namespace FourierDrawing
 
         private void OnCanvasViewPaintSurface(object sender, SKPaintSurfaceEventArgs args)
         {
-            if (isUpdating == true) return;
-            isUpdating = true;
+            if (_isUpdating == true) return;
+            _isUpdating = true;
 
-            SKCanvas canvas = args.Surface.Canvas;
+            var canvas = args.Surface.Canvas;
             canvas.Clear();
 
-            animatedPath.Reset();
+            _animatedPath.Reset();
 
-            if (!inProgressPaths.Any() && FollowTip)
+            if (!_inProgressPaths.Any() && FollowTip)
             {
-                var xTranslate = args.Info.Width / 2f - tipPositionX * scaleFactor;
-                var yTranslate = args.Info.Height / 2f - tipPositionY * scaleFactor;
+                var xTranslate = args.Info.Width / 2f - _tipPositionX * ScaleFactor;
+                var yTranslate = args.Info.Height / 2f - _tipPositionY * ScaleFactor;
                 canvas.Translate(xTranslate, yTranslate);
-                canvas.Scale(scaleFactor);
+                canvas.Scale(ScaleFactor);
             }
 
-            if (completedPaths.Any())
+            if (_completedPaths.Any())
             {
-                var x0 = complexArray[0].Magnitude / complexArray.Length * Math.Cos(complexArray[0].Phase);
-                var y0 = complexArray[0].Magnitude / complexArray.Length * Math.Sin(complexArray[0].Phase);
+                var x0 = _complexArray[0].Magnitude / _complexArray.Length * Math.Cos(_complexArray[0].Phase);
+                var y0 = _complexArray[0].Magnitude / _complexArray.Length * Math.Sin(_complexArray[0].Phase);
 
-                animatedPath.MoveTo((float)x0, (float)y0);
+                _animatedPath.MoveTo((float)x0, (float)y0);
 
-                var frequencies = new int[numberOfPoints];
-                for (int i = 1; i < complexArray.Length; i++)
+                var frequencies = new int[NumberOfPoints];
+                for (var i = 1; i < _complexArray.Length; i++)
                 {
-                    if (i > complexArray.Length / 2) frequencies[i] = -(complexArray.Length - i);
+                    if (i > _complexArray.Length / 2) frequencies[i] = -(_complexArray.Length - i);
                     else frequencies[i] = i;
                 }
 
-                var idxs = complexArray
+                var idxs = _complexArray
                     .Select((x, i) => new KeyValuePair<Complex, int>(x, i)).Where(i => i.Value > 0)
                     .OrderByDescending(x => x.Key.Magnitude)
                     .Select(x => x.Value)
@@ -221,83 +217,85 @@ namespace FourierDrawing
 
                 foreach (var idx in idxs)
                 {
-                    if (idx > complexArray.Length / 2) frequencies[idx] = -(complexArray.Length - idx);
+                    if (idx > _complexArray.Length / 2) frequencies[idx] = -(_complexArray.Length - idx);
 
-                    var xi = x0 + complexArray[idx].Magnitude / complexArray.Length * Math.Cos(frequencies[idx] * currentAngle + complexArray[idx].Phase);
-                    var yi = y0 + complexArray[idx].Magnitude / complexArray.Length * Math.Sin(frequencies[idx] * currentAngle + complexArray[idx].Phase);
-                    animatedPath.LineTo((float)xi, (float)yi);
+                    var xi = x0 + _complexArray[idx].Magnitude / _complexArray.Length * Math.Cos(frequencies[idx] * _currentAngle + _complexArray[idx].Phase);
+                    var yi = y0 + _complexArray[idx].Magnitude / _complexArray.Length * Math.Sin(frequencies[idx] * _currentAngle + _complexArray[idx].Phase);
+                    _animatedPath.LineTo((float)xi, (float)yi);
 
-                    canvas.DrawCircle((float)x0, (float)y0, (float)(complexArray[idx].Magnitude / complexArray.Length), circlePaint);
+                    canvas.DrawCircle((float)x0, (float)y0, (float)(_complexArray[idx].Magnitude / _complexArray.Length), _circlePaint);
 
                     x0 = xi;
                     y0 = yi;
                 }
 
-                tipPositionX = (float)x0;
-                tipPositionY = (float)y0;
+                _tipPositionX = (float)x0;
+                _tipPositionY = (float)y0;
 
-                path.Reset();
-                fixPath.Enqueue((x0, y0));
-                if (fixPath.Count > animationFrequency / rotationFrequency * 0.98) fixPath.Dequeue();
-                if (fixPath.Count > 2)
+                _path.Reset();
+                _fixPath.Enqueue((x0, y0));
+                if (_fixPath.Count > AnimationFrequency / RotationFrequency * 0.98) _fixPath.Dequeue();
+                if (_fixPath.Count > 2)
                 {
-                    path.MoveTo((float)fixPath.Peek().Item1, (float)fixPath.Peek().Item2);
-                    foreach (var item in fixPath)
+                    _path.MoveTo((float)_fixPath.Peek().Item1, (float)_fixPath.Peek().Item2);
+                    foreach (var item in _fixPath)
                     {
-                        path.LineTo((float)item.Item1, (float)item.Item2);
+                        _path.LineTo((float)item.Item1, (float)item.Item2);
                     }
                 }
 
-                canvas.DrawPath(path, animatedPathPaint);
-                canvas.DrawPath(animatedPath, jointPaint);
+                canvas.DrawPath(_path, _animatedPathPaint);
+                canvas.DrawPath(_animatedPath, _jointPaint);
             }
 
-            foreach (var path in completedPaths)
+            foreach (var path in _completedPaths)
             {
-                canvas.DrawPath(path, fixPathPaint);
+                canvas.DrawPath(path, _fixPathPaint);
             }
-            foreach (var path in inProgressPaths.Values)
+            foreach (var path in _inProgressPaths.Values)
             {
-                canvas.DrawPath(path, fixPathPaint);
+                canvas.DrawPath(path, _fixPathPaint);
             }
 
-            isUpdating = false;
+            _isUpdating = false;
         }
-        async Task AnimationLoop()
-        {
-            stopwatch.Start();
 
-            while (pageIsActive)
+        private async Task AnimationLoop()
+        {
+            _stopwatch.Start();
+
+            while (_pageIsActive)
             {
                 canvasView.InvalidateSurface();
-                currentAngle = (currentAngle + rotationFrequency / animationFrequency * 2 * Math.PI) % (2 * Math.PI);
-                var timeToDelay = 1 / animationFrequency - stopwatch.Elapsed.TotalSeconds;
+                _currentAngle = (_currentAngle + RotationFrequency / AnimationFrequency * 2 * Math.PI) % (2 * Math.PI);
+                var timeToDelay = 1 / AnimationFrequency - _stopwatch.Elapsed.TotalSeconds;
                 await Task.Delay(TimeSpan.FromSeconds(timeToDelay));
-                stopwatch.Restart();
+                _stopwatch.Restart();
             }
 
-            stopwatch.Stop();
+            _stopwatch.Stop();
         }
 
         private void Button_Clicked(object sender, System.EventArgs e)
         {
             FollowTip = false;
-            completedPaths.Clear();
-            inProgressPaths.Clear();
-            fixPath.Clear();
+            _completedPaths.Clear();
+            _inProgressPaths.Clear();
+            _fixPath.Clear();
             canvasView.InvalidateSurface();
         }
+
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            pageIsActive = true;
-            AnimationLoop();
+            _pageIsActive = true;
+            _ = AnimationLoop();
         }
 
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            pageIsActive = false;
+            _pageIsActive = false;
         }
 
         private void Entry_Unfocused(object sender, FocusEventArgs e)

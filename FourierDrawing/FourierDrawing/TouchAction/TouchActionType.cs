@@ -1,4 +1,4 @@
-﻿namespace TouchTracking
+﻿namespace FourierDrawing.TouchAction
 {
     public enum TouchActionType
     {

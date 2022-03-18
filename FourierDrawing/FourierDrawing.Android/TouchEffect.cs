@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Android.Views;
+using FourierDrawing.TouchAction;
 using Xamarin.Forms;
 using Xamarin.Forms.Platform.Android;
-
-using Android.Views;
+using TouchEffect = FourierDrawing.Droid.TouchEffect;
 
 [assembly: ResolutionGroupName("XamarinDocs")]
-[assembly: ExportEffect(typeof(TouchTracking.Droid.TouchEffect), "TouchEffect")]
+[assembly: ExportEffect(typeof(TouchEffect), "TouchEffect")]
 
-namespace TouchTracking.Droid
+namespace FourierDrawing.Droid
 {
     public class TouchEffect : PlatformEffect
     {
         Android.Views.View view;
         Element formsElement;
-        TouchTracking.TouchEffect libTouchEffect;
+        TouchAction.TouchEffect libTouchEffect;
         bool capture;
         Func<double, double> fromPixels;
         int[] twoIntArray = new int[2];
@@ -30,12 +30,12 @@ namespace TouchTracking.Droid
         protected override void OnAttached()
         {
             // Get the Android View corresponding to the Element that the effect is attached to
-            view = Control == null ? Container : Control;
+            view = Control ?? Container;
 
             // Get access to the TouchEffect class in the .NET Standard library
-            TouchTracking.TouchEffect touchEffect =
-                (TouchTracking.TouchEffect)Element.Effects.
-                    FirstOrDefault(e => e is TouchTracking.TouchEffect);
+            TouchAction.TouchEffect touchEffect =
+                (TouchAction.TouchEffect)Element.Effects.
+                    FirstOrDefault(e => e is TouchAction.TouchEffect);
 
             if (touchEffect != null && view != null)
             {

@@ -1,6 +1,6 @@
 ﻿using Xamarin.Forms;
 
-namespace TouchTracking
+namespace FourierDrawing.TouchAction
 {
     public class TouchEffect : RoutingEffect
     {

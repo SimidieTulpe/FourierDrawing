@@ -2,13 +2,13 @@
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Forms;assembly=SkiaSharp.Views.Forms"
-             xmlns:tt="clr-namespace:TouchTracking"
+             xmlns:touchAction="clr-namespace:FourierDrawing.TouchAction;assembly=FourierDrawing"
              x:Class="FourierDrawing.MainPage"
              x:Name="Me">
     <ContentPage.BindingContext>
         <x:Reference Name="Me"/>
     </ContentPage.BindingContext>
-    <StackLayout BackgroundColor="DarkSlateGray">
+    <StackLayout BackgroundColor="Black">
         <Label Text="Fourier Drawing"
                HorizontalTextAlignment="Center"
                TextColor="White"
@@ -17,10 +17,10 @@
         <ContentView VerticalOptions="FillAndExpand">
             <skia:SKCanvasView x:Name="canvasView"
                                PaintSurface="OnCanvasViewPaintSurface"
-                               BackgroundColor="Black"/>
+                               BackgroundColor="White"/>
             
             <ContentView.Effects>
-                <tt:TouchEffect Capture="True"
+                <touchAction:TouchEffect Capture="True"
                                 TouchAction="OnTouchEffectAction" />
             </ContentView.Effects>
         </ContentView>

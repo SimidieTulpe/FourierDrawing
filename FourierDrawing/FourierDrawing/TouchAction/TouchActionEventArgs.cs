@@ -1,7 +1,7 @@
 ﻿using System;
 using Xamarin.Forms;
 
-namespace TouchTracking
+namespace FourierDrawing.TouchAction
 {
     public class TouchActionEventArgs : EventArgs
     {
